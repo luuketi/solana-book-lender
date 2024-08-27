@@ -5,37 +5,52 @@ import { Keypair } from '@solana/web3.js';
 import { assert } from 'chai';
 
 describe("book-lender", () => {
-  anchor.AnchorProvider.env();
-  anchor.setProvider(anchor.AnchorProvider.env());
-
+  const provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
   const program = anchor.workspace.BookLender as Program<BookLender>;
 
-  it('Lend one book', async () => {
-    const source = new Keypair();
-    const destination = new Keypair();
+  const source = provider.wallet as anchor.Wallet;
+  const destination = new Keypair();
+
+    it("Initialize Shelf", async() => {
+      await program.methods
+          .initialize()
+          .accounts({
+            shelf: destination.publicKey,
+            payer: source.publicKey,
+          })
+          .signers([destination])
+          .rpc();
+
+      const shelf = await program.account.shelf.fetch(destination.publicKey);
+      const lendings = shelf["lendings"];
+      assert.lengthOf(lendings, 0);
+
+    });
+
+    it('Lend one book', async () => {
     const isbn = "1234567890123";
     const title = "Smalltalk-80: the language and its implementation";
 
     await program.methods
         .lendBook(source.publicKey, destination.publicKey, isbn, title)
         .accounts({
-          lend: destination.publicKey,
-          payer: source.publicKey,
+          shelf: destination.publicKey,
         })
-        .signers([destination])
         .rpc();
 
-      const lend = await program.account.lend.fetch(destination.publicKey);
+      const shelf = await program.account.shelf.fetch(destination.publicKey);
+      const lendings = shelf["lendings"];
+      assert.lengthOf(lendings, 1);
 
-      assert.equal(lend.from.toString(), source.publicKey);
-      assert.equal(lend.to.toString(), destination.publicKey);
-      assert.equal(lend.isbn, isbn);
-      assert.equal(lend.title, title);
+      const book = lendings[0];
+      assert.equal(book.from.toString(), source.publicKey);
+      assert.equal(book.to.toString(), destination.publicKey);
+      assert.equal(book.isbn, isbn);
+      assert.equal(book.title, title);
   });
 
   it('Lend one book with invalid ISBN', async () => {
-    const source = new Keypair();
-    const destination = new Keypair();
     const isbn = "1234";
     const title = "Smalltalk-80: the language and its implementation";
 
@@ -43,10 +58,8 @@ describe("book-lender", () => {
       await program.methods
           .lendBook(source.publicKey, destination.publicKey, isbn, title)
           .accounts({
-            lend: destination.publicKey,
-            payer: source.publicKey,
+            shelf: destination.publicKey,
           })
-          .signers([destination])
           .rpc();
       assert.ok(false);
     } catch (_err) {
@@ -58,8 +71,6 @@ describe("book-lender", () => {
   });
 
   it('Lend one book with invalid title', async () => {
-    const source = new Keypair();
-    const destination = new Keypair();
     const isbn = "1234567890123";
     const title = "";
 
@@ -67,10 +78,8 @@ describe("book-lender", () => {
       await program.methods
           .lendBook(source.publicKey, destination.publicKey, isbn, title)
           .accounts({
-            lend: destination.publicKey,
-            payer: source.publicKey,
+            shelf: destination.publicKey,
           })
-          .signers([destination])
           .rpc();
       assert.ok(false);
     } catch (_err) {
@@ -79,5 +88,27 @@ describe("book-lender", () => {
       assert.strictEqual(err.error.errorMessage, "Title must not be empty");
       assert.strictEqual(err.error.errorCode.number, 6001);
     }
+  });
+
+  it('Lend second book', async () => {
+    const isbn2 = "9780521644372";
+    const title2 = "Kent Beck's Guide to Better Smalltalk: A Sorted Collection";
+
+      await program.methods
+          .lendBook(source.publicKey, destination.publicKey, isbn2, title2)
+          .accounts({
+            shelf: destination.publicKey,
+          })
+          .rpc();
+
+    const shelf = await program.account.shelf.fetch(destination.publicKey);
+    const lendings = shelf["lendings"];
+    assert.lengthOf(lendings, 2);
+
+    const book = lendings[1];
+    assert.equal(book.from.toString(), source.publicKey);
+    assert.equal(book.to.toString(), destination.publicKey);
+    assert.equal(book.isbn, isbn2);
+    assert.equal(book.title, title2);
   });
 });

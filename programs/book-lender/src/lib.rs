@@ -16,16 +16,18 @@ enum LendingError {
 pub mod book_lender {
     use super::*;
 
-    pub fn lend_book(ctx: Context<Lending>, from: Pubkey, to: Pubkey, ISBN: String, title: String ) -> Result<()> {
+    pub fn initialize(_ctx: Context<Initialize>) -> Result<()> {
+        msg!("Shelf created.");
+        Ok(())
+    }
+
+    #[allow(non_snake_case)]
+    pub fn lend_book(ctx: Context<Update>, from: Pubkey, to: Pubkey, ISBN: String, title: String ) -> Result<()> {
         require!(ISBN.len() == 13, LendingError::InvalidISBN);
         require!(title.len() > 0, LendingError::EmptyTitle);
 
-        *ctx.accounts.lend = Lend {
-            from,
-            to,
-            ISBN,
-            title
-        };
+        let lending = Lend{ from, to, ISBN, title };
+        ctx.accounts.shelf.lendings.push(lending);
 
         msg!("Book {ISBN} - {title} lent from: {from} to: {to}");
         Ok(())
@@ -33,20 +35,35 @@ pub mod book_lender {
 }
 
 #[derive(Accounts)]
-pub struct Lending<'info> {
+pub struct Initialize<'info> {
     #[account(
         init,
         payer = user,
-        space = ANCHOR_DISCRIMINATOR + Lend::INIT_SPACE,
+        space = ANCHOR_DISCRIMINATOR + Shelf::INIT_SPACE,
     )]
-    pub lend: Account<'info, Lend>,
+    pub shelf: Account<'info, Shelf>,
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+pub struct Update<'info> {
+    #[account(mut)]
+    pub shelf: Account<'info, Shelf>,
+    pub user: Signer<'info>,
+}
+
 #[account]
 #[derive(InitSpace)]
+pub struct Shelf {
+    #[max_len(10)]
+    pub lendings: Vec<Lend>
+}
+
+#[account]
+#[derive(InitSpace)]
+#[allow(non_snake_case)]
 pub struct Lend {
     pub from: Pubkey,
     pub to: Pubkey,
