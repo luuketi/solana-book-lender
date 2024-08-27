@@ -17,7 +17,6 @@ describe("book-lender", () => {
           .initialize()
           .accounts({
             shelf: destination.publicKey,
-            payer: source.publicKey,
           })
           .signers([destination])
           .rpc();
