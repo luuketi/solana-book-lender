@@ -33,7 +33,7 @@ describe("book-lender", () => {
     const title = "Smalltalk-80: the language and its implementation";
 
     await program.methods
-        .lendBook(source.publicKey, destination.publicKey, isbn, title)
+        .lendBook(source.publicKey, isbn, title)
         .accounts({
           shelf: destination.publicKey,
         })
@@ -45,7 +45,6 @@ describe("book-lender", () => {
 
       const book = lendings[0];
       assert.equal(book.from.toString(), source.publicKey);
-      assert.equal(book.to.toString(), destination.publicKey);
       assert.equal(book.isbn, isbn);
       assert.equal(book.title, title);
   });
@@ -56,7 +55,7 @@ describe("book-lender", () => {
 
     try {
       await program.methods
-          .lendBook(source.publicKey, destination.publicKey, isbn, title)
+          .lendBook(source.publicKey, isbn, title)
           .accounts({
             shelf: destination.publicKey,
           })
@@ -76,7 +75,7 @@ describe("book-lender", () => {
 
     try {
       await program.methods
-          .lendBook(source.publicKey, destination.publicKey, isbn, title)
+          .lendBook(source.publicKey, isbn, title)
           .accounts({
             shelf: destination.publicKey,
           })
@@ -95,7 +94,7 @@ describe("book-lender", () => {
     const title2 = "Kent Beck's Guide to Better Smalltalk: A Sorted Collection";
 
       await program.methods
-          .lendBook(source.publicKey, destination.publicKey, isbn2, title2)
+          .lendBook(source.publicKey, isbn2, title2)
           .accounts({
             shelf: destination.publicKey,
           })
@@ -107,7 +106,6 @@ describe("book-lender", () => {
 
     const book = lendings[1];
     assert.equal(book.from.toString(), source.publicKey);
-    assert.equal(book.to.toString(), destination.publicKey);
     assert.equal(book.isbn, isbn2);
     assert.equal(book.title, title2);
   });

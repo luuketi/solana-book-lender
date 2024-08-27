@@ -22,14 +22,14 @@ pub mod book_lender {
     }
 
     #[allow(non_snake_case)]
-    pub fn lend_book(ctx: Context<Update>, from: Pubkey, to: Pubkey, ISBN: String, title: String ) -> Result<()> {
+    pub fn lend_book(ctx: Context<Update>, from: Pubkey, ISBN: String, title: String ) -> Result<()> {
         require!(ISBN.len() == 13, LendingError::InvalidISBN);
         require!(title.len() > 0, LendingError::EmptyTitle);
 
-        let lending = Lend{ from, to, ISBN, title };
+        let lending = Lend{ from, ISBN, title };
         ctx.accounts.shelf.lendings.push(lending);
 
-        msg!("Book {ISBN} - {title} lent from: {from} to: {to}");
+        msg!("Book {ISBN} - {title} lent from: {from}");
         Ok(())
     }
 }
@@ -66,7 +66,6 @@ pub struct Shelf {
 #[allow(non_snake_case)]
 pub struct Lend {
     pub from: Pubkey,
-    pub to: Pubkey,
     #[max_len(13)]
     pub ISBN: String,
     #[max_len(100)]
